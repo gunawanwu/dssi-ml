@@ -1,14 +1,40 @@
+import os
+from pathlib import Path
+
 import streamlit as st
 import pandas as pd
 import joblib
+
+BASE_DIR = Path(__file__).resolve().parent
+
+
+def resolve_artifact_path(filename):
+    candidate_dirs = [
+        BASE_DIR,
+        BASE_DIR / "models",
+        BASE_DIR.parent,
+        BASE_DIR.parent / "models",
+        Path.cwd(),
+        Path.cwd() / "models",
+    ]
+
+    for directory in candidate_dirs:
+        candidate = directory / filename
+        if candidate.exists():
+            return candidate
+
+    raise FileNotFoundError(f"Could not find {filename} in any expected location")
+
 
 # --- Load model pipeline and expected feature order (cached across reruns) ---
 @st.cache_resource
 def load_artifacts():
     # Pipeline: ColumnTransformer(OneHotEncoder on FuelType) -> LinearRegression
-    model = joblib.load("used_car_price_prediction_model_v2.joblib")
-    # Ordered list of feature/column names the pipeline expects
-    features = joblib.load("used_car_price_prediction_features_v2.joblib")
+    model_path = resolve_artifact_path("used_car_price_prediction_model_v2.joblib")
+    features_path = resolve_artifact_path("used_car_price_prediction_features_v2.joblib")
+
+    model = joblib.load(model_path)
+    features = joblib.load(features_path)
     return model, features
 
 model, FEATURES = load_artifacts()
